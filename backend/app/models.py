@@ -21,8 +21,8 @@ class Category(Base):
     id = Column(BigInteger , primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     description = Column(Text , nullable=True)
-    created_at = Column(DateTime(timezone=True))
-    updated_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True),  server_default=func.now())
+    updated_at = Column(DateTime(timezone=True),  server_default=func.now())
 
 
 
