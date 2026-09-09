@@ -2,7 +2,7 @@ from fastapi import APIRouter , Depends , HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import GrievanceUpdate
+from app.models import GrievanceUpdate , Grievance
 from app.schemas import GrievanceUpdateCreate , GrievanceUpdateResponse 
 
 
@@ -17,6 +17,17 @@ def get_all_grievance_update(db : Session = Depends(get_db)):
 
 @router.post("/grievance-updates" , response_model=GrievanceUpdateResponse)
 def create_grievance_update(grievance : GrievanceUpdateCreate , db : Session = Depends(get_db)):
+
+    existing_grievance = db.query(Grievance).filter(Grievance.id == grievance.grievance_id).first()
+
+    if not existing_grievance :
+        raise HTTPException(
+            status_code=404 ,
+            detail="Grievance not found ❌"
+        )
+
+    existing_grievance.status = grievance.status
+
     new_grievance = GrievanceUpdate(
         grievance_id=grievance.grievance_id,
         updated_by=grievance.updated_by,
@@ -32,7 +43,7 @@ def create_grievance_update(grievance : GrievanceUpdateCreate , db : Session = D
 
 @router.get("/grievance-updates/{update_id}" , response_model= GrievanceUpdateResponse)
 def get_grievance_update( update_id : int , db : Session = Depends(get_db)):
-    grievance = db.query(GrievanceUpdate).filter(update_id == GrievanceUpdate.id).first()
+    grievance = db.query(GrievanceUpdate).filter(GrievanceUpdate.id == update_id).first()
 
     if not grievance :
         raise HTTPException(
