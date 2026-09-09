@@ -88,9 +88,6 @@ class GrievanceUpdateCreate(BaseModel):
     status : str
     note : Optional[str] = None
 
-class GrievanceUpdateUpdate(BaseModel):
-    status : str
-    note : Optional[str] = None
 
 class GrievanceUpdateResponse(BaseModel):
     id : int 
