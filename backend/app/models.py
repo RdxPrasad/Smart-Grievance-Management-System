@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, BigInteger, Text, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
 
@@ -10,6 +11,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     email = Column(String, nullable=False)
+    auth_user_id = Column(UUID(as_uuid=True), unique=True, nullable=True)
     role = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
