@@ -2,27 +2,44 @@ from fastapi import APIRouter , Depends , HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Grievance
+from app.models import Grievance , User
 from app.schemas import GrievanceCreate, GrievanceUpdate, GrievanceResponse
+from app.auth import get_current_user
+
 
 router = APIRouter()
 
-#GETT ALL GRIEVANCES
-@router.get("/grievances" , response_model=list[GrievanceResponse])
-def get_grievances(db : Session = Depends(get_db)) :
-    grievances = db.query(Grievance).all()
+# GET ALL GRIEVANCES
+@router.get("/grievances", response_model=list[GrievanceResponse])
+def get_grievances(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.role == "admin":
+        grievances = db.query(Grievance).all()
+
+    elif current_user.role == "staff":
+        grievances = db.query(Grievance).filter(
+            Grievance.department_id == current_user.department_id
+        ).all()
+
+    else:  # student
+        grievances = db.query(Grievance).filter(
+            Grievance.submitted_by == current_user.id
+        ).all()
 
     return grievances
 
 #CREATE GRIEVANCE
 @router.post("/grievances",response_model=GrievanceResponse)
-def create_grievance(grievance : GrievanceCreate , db : Session = Depends(get_db)) :
+def create_grievance(grievance : GrievanceCreate , db : Session = Depends(get_db), current_user: User = Depends(get_current_user)) :
     new_grievance = Grievance(
-        submitted_by = grievance.submitted_by ,
+        submitted_by = current_user.id ,
         complaint = grievance.complaint ,
         priority = grievance.priority ,
         status = grievance.status , 
-        category_id = grievance.category_id
+        category_id = grievance.category_id ,
+        department_id=grievance.department_id
     )
 
     db.add(new_grievance)

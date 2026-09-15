@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 from app.schemas import UserResponse , UserCreate , UserUpdate
+from app.auth import require_admin
 
 
 router = APIRouter()
@@ -18,7 +19,7 @@ def get_users(db: Session = Depends(get_db)) :
 
 # CREATE USER
 @router.post("/users" , response_model=UserResponse)
-def create_user(user : UserCreate , db : Session = Depends(get_db)) :
+def create_user(user : UserCreate , db : Session = Depends(get_db),  current_user: User = Depends(require_admin)) :
     new_user = User(
         name = user.name ,
         email = user.email ,
@@ -47,7 +48,7 @@ def get_user(user_id : int , db : Session = Depends(get_db)) :
 
 # UPDATE USER
 @router.put("/users/{user_id}" , response_model=UserResponse)
-def update_user(user_id : int , user_data : UserUpdate , db : Session = Depends(get_db)) :
+def update_user(user_id : int , user_data : UserUpdate , db : Session = Depends(get_db) ,  current_user: User = Depends(require_admin)) :
     user =  db.query(User).filter(User.id == user_id).first()
 
     if not user :
@@ -67,7 +68,7 @@ def update_user(user_id : int , user_data : UserUpdate , db : Session = Depends(
 
 # DELETE USER
 @router.delete("/users/{user_id}")
-def delete_user(user_id : int , db : Session = Depends(get_db)) :
+def delete_user(user_id : int , db : Session = Depends(get_db) , current_user: User = Depends(require_admin)) :
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user :

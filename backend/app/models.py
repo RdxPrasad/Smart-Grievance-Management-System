@@ -13,6 +13,22 @@ class User(Base):
     email = Column(String, nullable=False)
     auth_user_id = Column(UUID(as_uuid=True), unique=True, nullable=True)
     role = Column(String, nullable=False)
+    department_id = Column(
+    BigInteger,
+    ForeignKey("departments.id"),
+    nullable=True
+    )
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+
+class Department(Base):
+    __tablename__ = "departments"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -35,6 +51,11 @@ class Grievance(Base):
     complaint = Column(Text, nullable=False)
     priority = Column(String, nullable=False)
     status = Column(String, nullable=False)
+    department_id = Column(
+    BigInteger,
+    ForeignKey("departments.id"),
+    nullable=True
+    )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
     category_id = Column(BigInteger, ForeignKey("categories.id"), nullable=False)
