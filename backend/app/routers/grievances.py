@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Grievance , User
 from app.schemas import GrievanceCreate, GrievanceUpdate, GrievanceResponse
-from app.auth import get_current_user
+from app.auth import get_current_user , require_admin, require_staff , require_student_or_admin
 
 
 router = APIRouter()
@@ -32,15 +32,19 @@ def get_grievances(
 
 #CREATE GRIEVANCE
 @router.post("/grievances",response_model=GrievanceResponse)
-def create_grievance(grievance : GrievanceCreate , db : Session = Depends(get_db), current_user: User = Depends(get_current_user)) :
+def create_grievance(
+    grievance: GrievanceCreate,
+    current_user: User = Depends(require_student_or_admin),
+    db: Session = Depends(get_db)
+):
     new_grievance = Grievance(
-        submitted_by = current_user.id ,
-        complaint = grievance.complaint ,
-        priority = grievance.priority ,
-        status = grievance.status , 
-        category_id = grievance.category_id ,
-        department_id=grievance.department_id
-    )
+    submitted_by=current_user.id,
+    complaint=grievance.complaint,
+    priority=grievance.priority,
+    status=grievance.status,
+    category_id=grievance.category_id,
+    department_id=grievance.department_id
+)
 
     db.add(new_grievance)
     db.commit()
@@ -49,52 +53,108 @@ def create_grievance(grievance : GrievanceCreate , db : Session = Depends(get_db
     return new_grievance
 
 
-#GET ONE GRIEVANCE
-@router.get("/grievances/{grievance_id}",response_model=GrievanceResponse)
-def get_grievance(grievance_id : int , db : Session = Depends(get_db)) :
-    grivence = db.query(Grievance).filter(Grievance.id == grievance_id).first()
+# GET ONE GRIEVANCE
+@router.get("/grievances/{grievance_id}", response_model=GrievanceResponse)
+def get_grievance(
+    grievance_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    grievance = db.query(Grievance).filter(
+        Grievance.id == grievance_id
+    ).first()
 
-    if not grivence :
+    if not grievance:
         raise HTTPException(
-            status_code=404 ,
+            status_code=404,
             detail="No grievance found ❌"
         )
 
-    return grivence
+    if current_user.role == "admin":
+        return grievance
 
-#UPDATE GRIEVANCE
-@router.put("/grievances/{grievance_id}",response_model=GrievanceUpdate)
-def update_grievance(grievance_id : int , update_grievance : GrievanceUpdate , db : Session = Depends(get_db)) :
-    grievance = db.query(Grievance).filter(grievance_id == Grievance.id).first()
+    elif current_user.role == "staff":
+        if grievance.department_id != current_user.department_id:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorized to view this grievance"
+            )
 
-    if not grievance :
+    else:  # student
+        if grievance.submitted_by != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorized to view this grievance"
+            )
+
+    return grievance
+
+# UPDATE GRIEVANCE
+@router.put("/grievances/{grievance_id}", response_model=GrievanceResponse)
+def update_grievance(
+    grievance_id: int,
+    update_grievance: GrievanceUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    grievance = db.query(Grievance).filter(
+        Grievance.id == grievance_id
+    ).first()
+
+    if not grievance:
         raise HTTPException(
-            status_code= 404 ,
-            detail= "No grievance found ❌"
+            status_code=404,
+            detail="No grievance found ❌"
         )
+
+    # Student cannot update grievances
+    if current_user.role == "student":
+        raise HTTPException(
+            status_code=403,
+            detail="Students cannot update grievances"
+        )
+
+    # Staff can update only grievances from their department
+    if current_user.role == "staff":
+        if grievance.department_id != current_user.department_id:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorized to update this grievance"
+            )
+
+    # Admin can update any grievance
 
     grievance.complaint = update_grievance.complaint
     grievance.priority = update_grievance.priority
     grievance.status = update_grievance.status
     grievance.category_id = update_grievance.category_id
+    grievance.department_id = update_grievance.department_id
 
     db.commit()
     db.refresh(grievance)
 
     return grievance
 
-#DELETE GRIEVANCE
+# DELETE GRIEVANCE
 @router.delete("/grievances/{grievance_id}")
-def delete_grievance(grievance_id : int , db : Session = Depends(get_db)) :
-    grievance = db.query(Grievance).filter(grievance_id == Grievance.id).first()
+def delete_grievance(
+    grievance_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    grievance = db.query(Grievance).filter(
+        Grievance.id == grievance_id
+    ).first()
 
-    if not grievance :
+    if not grievance:
         raise HTTPException(
-            status_code= 404 ,
-            detail= "No grievance found ❌"
+            status_code=404,
+            detail="No grievance found ❌"
         )
 
     db.delete(grievance)
     db.commit()
 
-    return {"message" : "Grievance deleted successfully ✅"}
+    return {
+        "message": "Grievance deleted successfully ✅"
+    }
