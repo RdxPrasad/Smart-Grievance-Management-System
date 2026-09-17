@@ -80,7 +80,6 @@ class CategoryResponse(BaseModel):
 
 # GRIEVANCES TABLE
 class GrievanceCreate(BaseModel):
-    submitted_by : int
     complaint : str 
     priority : str
     status : str
@@ -114,7 +113,6 @@ class GrievanceResponse(BaseModel):
 # GRIEVANCE_UPDATE TABLE
 class GrievanceUpdateCreate(BaseModel):
     grievance_id : int
-    updated_by : int
     status : str
     note : Optional[str] = None
 

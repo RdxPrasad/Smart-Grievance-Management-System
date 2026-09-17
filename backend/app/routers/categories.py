@@ -2,17 +2,17 @@ from fastapi import APIRouter , Depends , HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Category
+from app.models import Category , User
 from app.schemas import CategoryCreate , CategoryUpdate , CategoryResponse
-from app.auth import require_admin
-from app.models import Category, User
+from app.auth import require_admin , get_current_user
+
 
 
 router = APIRouter() 
 
 # GET ONE CATEGORY
 @router.get("/categories/{category_id}",response_model=CategoryResponse)
-def get_category(category_id : int , db : Session = Depends(get_db)):
+def get_category(category_id : int , db : Session = Depends(get_db) , current_user: User = Depends(get_current_user)):
     category = db.query(Category).filter(Category.id == category_id).first()
 
     if not category :
@@ -25,7 +25,7 @@ def get_category(category_id : int , db : Session = Depends(get_db)):
 
 # GET ALL CATEGORIES
 @router.get("/categories" , response_model=list[CategoryResponse])
-def get_categories(db : Session = Depends(get_db)):
+def get_categories(db : Session = Depends(get_db) , current_user: User = Depends(get_current_user)):
     categories = db.query(Category).all()
     
     return categories
