@@ -82,7 +82,7 @@ class CategoryResponse(BaseModel):
 class GrievanceCreate(BaseModel):
     complaint : str 
     priority : str
-    status : str
+    status : str = "Open"
     category_id : int
     department_id: Optional[int] = None
 

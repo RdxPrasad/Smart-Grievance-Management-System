@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends , HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,6 +11,22 @@ from app.routers import departments
 
 
 app = FastAPI()
+
+# Configure CORS (Cross-Origin Resource Sharing)
+# This allows our React frontend running on port 5173 to send requests to this backend.
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")

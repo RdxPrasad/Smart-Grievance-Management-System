@@ -11,6 +11,7 @@ router = APIRouter()
 
 # GET ALL GRIEVANCES
 @router.get("/grievances", response_model=list[GrievanceResponse])
+@router.get("/grievances/", response_model=list[GrievanceResponse])
 def get_grievances(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -31,7 +32,8 @@ def get_grievances(
     return grievances
 
 #CREATE GRIEVANCE
-@router.post("/grievances",response_model=GrievanceResponse)
+@router.post("/grievances", response_model=GrievanceResponse)
+@router.post("/grievances/", response_model=GrievanceResponse)
 def create_grievance(
     grievance: GrievanceCreate,
     current_user: User = Depends(require_student_or_admin),
