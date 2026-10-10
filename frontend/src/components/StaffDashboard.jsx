@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { api } from '../api'
+import { IconAlertCircle, IconCheckCircle, IconX, IconInbox } from './Icons'
 import GrievanceTimelineModal from './GrievanceTimelineModal'
 
 export default function StaffDashboard({ user }) {
@@ -68,7 +69,7 @@ export default function StaffDashboard({ user }) {
         })
       }
 
-      setActionSuccess(`Grievance #${updateModalGrievance.id} updated to ${newStatus}!`)
+      setActionSuccess(`Grievance #${updateModalGrievance.id} updated to "${newStatus}".`)
       setUpdateModalGrievance(null)
       await loadGrievances()
     } catch (err) {
@@ -95,83 +96,70 @@ export default function StaffDashboard({ user }) {
     return matchesStatus && matchesSearch
   })
 
-  // Count stats
+  // Count stats from real data
   const totalCount = grievances.length
-  const submittedCount = grievances.filter((g) => (g.status || '').toLowerCase() === 'submitted').length
+  const openCount = grievances.filter((g) => ['open', 'submitted'].includes((g.status || '').toLowerCase())).length
   const inProgressCount = grievances.filter((g) => ['under review', 'in progress'].includes((g.status || '').toLowerCase())).length
   const resolvedCount = grievances.filter((g) => (g.status || '').toLowerCase() === 'resolved').length
 
   return (
     <div>
       {/* Overview Metric Bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="card" style={{ marginBottom: 0, padding: '16px 20px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-            {user.role === 'admin' ? 'Total Institutional Grievances' : 'Department Grievances'}
+      <div className="stat-grid">
+        <div className="stat-card">
+          <div className="stat-label">
+            {user.role === 'admin' ? 'Total Grievances' : 'Department Grievances'}
           </div>
-          <div style={{ fontSize: '26px', fontWeight: 700, marginTop: '4px' }}>{totalCount}</div>
+          <div className="stat-value">{totalCount}</div>
         </div>
 
-        <div className="card" style={{ marginBottom: 0, padding: '16px 20px' }}>
-          <div style={{ fontSize: '12px', color: 'var(--status-submitted-text)', textTransform: 'uppercase', fontWeight: 600 }}>
-            Pending Review
-          </div>
-          <div style={{ fontSize: '26px', fontWeight: 700, marginTop: '4px', color: 'var(--status-submitted-text)' }}>
-            {submittedCount}
-          </div>
+        <div className="stat-card stat-card--open">
+          <div className="stat-label">Pending Review</div>
+          <div className="stat-value">{openCount}</div>
         </div>
 
-        <div className="card" style={{ marginBottom: 0, padding: '16px 20px' }}>
-          <div style={{ fontSize: '12px', color: '#b45309', textTransform: 'uppercase', fontWeight: 600 }}>
-            In Progress / Review
-          </div>
-          <div style={{ fontSize: '26px', fontWeight: 700, marginTop: '4px', color: '#b45309' }}>
-            {inProgressCount}
-          </div>
+        <div className="stat-card stat-card--progress">
+          <div className="stat-label">In Progress</div>
+          <div className="stat-value">{inProgressCount}</div>
         </div>
 
-        <div className="card" style={{ marginBottom: 0, padding: '16px 20px' }}>
-          <div style={{ fontSize: '12px', color: '#15803d', textTransform: 'uppercase', fontWeight: 600 }}>
-            Resolved
-          </div>
-          <div style={{ fontSize: '26px', fontWeight: 700, marginTop: '4px', color: '#15803d' }}>
-            {resolvedCount}
-          </div>
+        <div className="stat-card stat-card--resolved">
+          <div className="stat-label">Resolved</div>
+          <div className="stat-value">{resolvedCount}</div>
         </div>
       </div>
 
       {actionSuccess && (
         <div className="alert alert-success">
-          <span>✅</span>
+          <IconCheckCircle className="alert-icon" />
           <span>{actionSuccess}</span>
         </div>
       )}
 
       {error && (
         <div className="alert alert-error">
-          <span>⚠️</span>
+          <IconAlertCircle className="alert-icon" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Main Table Card */}
       <div className="card">
-        <div className="card-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
+        <div className="card-header" style={{ flexWrap: 'wrap' }}>
           <div>
             <h2 className="card-title">
-              {user.role === 'admin' ? 'All Grievances Administration' : 'Department Resolution Queue'}
+              {user.role === 'admin' ? 'All Grievances' : 'Department Resolution Queue'}
             </h2>
             <p className="card-desc">
-              Review grievances, update resolution statuses, and append official audit remarks.
+              Review grievances, update statuses, and append official remarks.
             </p>
           </div>
 
           {/* Filter & Search Controls */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="filter-bar">
             <input
               type="text"
               className="form-input"
-              style={{ width: '200px', padding: '6px 10px', fontSize: '13px' }}
               placeholder="Search complaints..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -179,7 +167,6 @@ export default function StaffDashboard({ user }) {
 
             <select
               className="form-select"
-              style={{ width: '150px', padding: '6px 10px', fontSize: '13px' }}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -192,12 +179,15 @@ export default function StaffDashboard({ user }) {
         </div>
 
         {loading ? (
-          <p style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-            Loading grievances...
-          </p>
+          <div className="loading-inline">
+            <div className="spinner"></div>
+            <span>Loading grievances...</span>
+          </div>
         ) : filteredGrievances.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">✅</div>
+            <div className="empty-state-icon">
+              <IconInbox size={48} />
+            </div>
             <h4>No grievances matching filters</h4>
             <p>Try resetting filters or search terms.</p>
           </div>
@@ -208,7 +198,7 @@ export default function StaffDashboard({ user }) {
                 <tr>
                   <th>ID</th>
                   <th>Complaint</th>
-                  <th>Student ID</th>
+                  <th>Student</th>
                   <th>Priority</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
@@ -217,18 +207,16 @@ export default function StaffDashboard({ user }) {
               <tbody>
                 {filteredGrievances.map((g) => (
                   <tr key={g.id}>
-                    <td style={{ fontWeight: '600', color: 'var(--text-muted)' }}>
-                      #{g.id}
-                    </td>
-                    <td style={{ maxWidth: '340px' }}>
-                      <div style={{ fontWeight: '500', color: 'var(--text-main)', marginBottom: '3px' }}>
+                    <td className="td-id">#{g.id}</td>
+                    <td className="td-complaint">
+                      <div className="td-complaint-text">
                         {g.complaint}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-subtle)' }}>
-                        Category #{g.category_id} • Dept #{g.department_id}
+                      <div className="td-complaint-meta">
+                        Category #{g.category_id} / Dept #{g.department_id}
                       </div>
                     </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                    <td className="text-sm text-muted">
                       User #{g.user_id}
                     </td>
                     <td>
@@ -239,13 +227,12 @@ export default function StaffDashboard({ user }) {
                     <td>
                       {getStatusBadge(g.status)}
                     </td>
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <td className="td-actions">
                       <button
                         className="btn btn-primary btn-sm"
-                        style={{ marginRight: '6px' }}
                         onClick={() => handleOpenUpdateModal(g)}
                       >
-                        Update Status
+                        Update
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
@@ -270,44 +257,44 @@ export default function StaffDashboard({ user }) {
             <div className="modal-header">
               <div>
                 <h3>Update Grievance #{updateModalGrievance.id}</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                <p className="modal-header-desc">
                   Change resolution state and record official remarks
                 </p>
               </div>
-              <button className="btn btn-outline btn-sm" onClick={() => setUpdateModalGrievance(null)}>
-                ✕
+              <button className="btn-close" onClick={() => setUpdateModalGrievance(null)}>
+                <IconX />
               </button>
             </div>
 
             <form onSubmit={handleSaveStatusUpdate}>
               <div className="modal-body">
-                <div style={{ background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+                <div className="grievance-summary">
+                  <div className="text-sm" style={{ fontWeight: 500, marginBottom: 4 }}>
                     Complaint:
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  <div className="grievance-summary-text">
                     {updateModalGrievance.complaint}
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="newStatus">New Resolution Status</label>
+                  <label className="form-label" htmlFor="staff-newStatus">New Status</label>
                   <select
-                    id="newStatus"
+                    id="staff-newStatus"
                     className="form-select"
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
                   >
-                    <option value="Open">Open (Pending Initial Review)</option>
-                    <option value="In Progress">In Progress (Work ongoing)</option>
-                    <option value="Resolved">Resolved (Action completed)</option>
+                    <option value="Open">Open - Pending initial review</option>
+                    <option value="In Progress">In Progress - Work ongoing</option>
+                    <option value="Resolved">Resolved - Action completed</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="statusNotes">Official Note / Remarks</label>
+                  <label className="form-label" htmlFor="staff-statusNotes">Official Note / Remarks</label>
                   <textarea
-                    id="statusNotes"
+                    id="staff-statusNotes"
                     className="form-textarea"
                     placeholder="Explain the update, next action, or resolution justification..."
                     value={statusNotes}
@@ -330,7 +317,7 @@ export default function StaffDashboard({ user }) {
                   className="btn btn-primary"
                   disabled={updating}
                 >
-                  {updating ? 'Saving...' : 'Confirm Status Update'}
+                  {updating ? 'Saving...' : 'Confirm Update'}
                 </button>
               </div>
             </form>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { IconAlertCircle, IconCheckCircle } from './Icons'
 
 export default function AuthView({ onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true)
@@ -42,7 +43,7 @@ export default function AuthView({ onAuthSuccess }) {
         if (data.session) {
           if (onAuthSuccess) onAuthSuccess(data.session)
         } else {
-          setSuccessMsg('Account created successfully! Please check your email for confirmation or sign in.')
+          setSuccessMsg('Account created. Check your email for confirmation, then sign in.')
           setIsLogin(true)
         }
       }
@@ -54,36 +55,32 @@ export default function AuthView({ onAuthSuccess }) {
   }
 
   return (
-    <div style={{ maxWidth: '440px', margin: '40px auto 0' }}>
+    <div className="auth-wrapper">
       <div className="card">
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div className="brand-icon" style={{ margin: '0 auto 14px', width: '48px', height: '48px', fontSize: '22px' }}>
-            SG
-          </div>
-          <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '6px' }}>
-            {isLogin ? 'Welcome Back' : 'Create an Account'}
+        <div className="auth-header">
+          <div className="brand-icon">SG</div>
+          <h2 className="auth-title">
+            {isLogin ? 'Welcome back' : 'Create an account'}
           </h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            {isLogin 
-              ? 'Sign in to submit grievances and track resolution updates' 
-              : 'Register as a student to log and track your complaints'}
+          <p className="auth-subtitle">
+            {isLogin
+              ? 'Sign in to submit and track your grievances'
+              : 'Register to log and track your complaints'}
           </p>
         </div>
 
         {/* Tab switch */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: 'var(--bg-subtle)', padding: '4px', borderRadius: '8px' }}>
+        <div className="auth-tabs">
           <button
             type="button"
-            className={`btn ${isLogin ? 'btn-primary' : 'btn-outline'}`}
-            style={{ flex: 1, padding: '8px', border: 'none' }}
+            className={`auth-tab ${isLogin ? 'auth-tab--active' : ''}`}
             onClick={() => { setIsLogin(true); setError(null); }}
           >
             Sign In
           </button>
           <button
             type="button"
-            className={`btn ${!isLogin ? 'btn-primary' : 'btn-outline'}`}
-            style={{ flex: 1, padding: '8px', border: 'none' }}
+            className={`auth-tab ${!isLogin ? 'auth-tab--active' : ''}`}
             onClick={() => { setIsLogin(false); setError(null); }}
           >
             Register
@@ -92,14 +89,14 @@ export default function AuthView({ onAuthSuccess }) {
 
         {error && (
           <div className="alert alert-error">
-            <span>⚠️</span>
+            <IconAlertCircle className="alert-icon" />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
           <div className="alert alert-success">
-            <span>✅</span>
+            <IconCheckCircle className="alert-icon" />
             <span>{successMsg}</span>
           </div>
         )}
@@ -107,9 +104,9 @@ export default function AuthView({ onAuthSuccess }) {
         <form onSubmit={handleSubmit}>
           {!isLogin && (
             <div className="form-group">
-              <label className="form-label" htmlFor="fullName">Full Name</label>
+              <label className="form-label" htmlFor="auth-fullName">Full Name</label>
               <input
-                id="fullName"
+                id="auth-fullName"
                 type="text"
                 className="form-input"
                 placeholder="e.g. Rahul Sharma"
@@ -121,9 +118,9 @@ export default function AuthView({ onAuthSuccess }) {
           )}
 
           <div className="form-group">
-            <label className="form-label" htmlFor="email">Institute Email</label>
+            <label className="form-label" htmlFor="auth-email">Institute Email</label>
             <input
-              id="email"
+              id="auth-email"
               type="email"
               className="form-input"
               placeholder="user@institute.edu"
@@ -134,12 +131,12 @@ export default function AuthView({ onAuthSuccess }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="password">Password</label>
+            <label className="form-label" htmlFor="auth-password">Password</label>
             <input
-              id="password"
+              id="auth-password"
               type="password"
               className="form-input"
-              placeholder="••••••••"
+              placeholder="Minimum 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -148,11 +145,10 @@ export default function AuthView({ onAuthSuccess }) {
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: '100%', padding: '11px', marginTop: '8px' }}
+            className="btn btn-primary auth-submit"
             disabled={loading}
           >
-            {loading ? 'Please wait...' : isLogin ? 'Sign In to Portal' : 'Create Student Account'}
+            {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
       </div>

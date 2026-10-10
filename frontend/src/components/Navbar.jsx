@@ -7,10 +7,10 @@ export default function Navbar({ user, onSignOut }) {
     if (onSignOut) onSignOut()
   }
 
-  const roleClass = user?.role === 'admin' 
-    ? 'role-admin' 
-    : user?.role === 'staff' 
-      ? 'role-staff' 
+  const roleClass = user?.role === 'admin'
+    ? 'role-admin'
+    : user?.role === 'staff'
+      ? 'role-staff'
       : 'role-student'
 
   return (
@@ -19,7 +19,7 @@ export default function Navbar({ user, onSignOut }) {
         <div className="brand">
           <div className="brand-icon">SG</div>
           <div className="brand-text">
-            <h1>Smart Grievance Portal</h1>
+            <h1>Smart Grievance</h1>
             <p>Institutional Resolution System</p>
           </div>
         </div>
@@ -33,8 +33,8 @@ export default function Navbar({ user, onSignOut }) {
               </span>
             </div>
 
-            <button 
-              className="btn btn-secondary btn-sm" 
+            <button
+              className="btn btn-secondary btn-sm"
               onClick={handleSignOut}
               title="Sign out of your account"
             >

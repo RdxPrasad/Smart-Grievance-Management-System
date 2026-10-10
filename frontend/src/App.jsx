@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import { api } from './api'
+import { IconAlertCircle } from './components/Icons'
 import Navbar from './components/Navbar'
 import AuthView from './components/AuthView'
 import StudentDashboard from './components/StudentDashboard'
@@ -62,15 +63,10 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="app-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div className="brand-icon" style={{ margin: '0 auto 16px', width: '48px', height: '48px', fontSize: '20px' }}>
-            SG
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: '500' }}>
-            Initializing Smart Grievance Portal...
-          </p>
-        </div>
+      <div className="loading-screen">
+        <div className="brand-icon">SG</div>
+        <div className="spinner"></div>
+        <p className="loading-text">Loading...</p>
       </div>
     )
   }
@@ -82,12 +78,13 @@ export default function App() {
       <main className="main-content">
         {/* If backend is unreachable, show clear alert */}
         {error && (
-          <div className="alert alert-error" style={{ marginBottom: '24px' }}>
-            <span>⚠️</span>
+          <div className="alert alert-error mb-4">
+            <IconAlertCircle className="alert-icon" />
             <div style={{ flex: 1 }}>
-              <strong>Backend Connection Notice:</strong> {error}
-              <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                Make sure to start the backend with: <code>uvicorn app.main:app --reload</code>
+              <strong>Backend Connection Issue</strong>
+              <div className="text-xs mt-1">{error}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--gray-500)' }}>
+                Start the backend with: <code>uvicorn app.main:app --reload</code>
               </div>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={loadUserProfile}>
@@ -104,22 +101,22 @@ export default function App() {
           <div>
             {/* Admin Switcher Bar (only for admins) */}
             {currentUser.role === 'admin' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Admin View Mode:</span>
-                <div style={{ display: 'inline-flex', background: 'var(--bg-subtle)', padding: '3px', borderRadius: '6px' }}>
+              <div className="view-toggle-bar">
+                <span className="view-toggle-label">View:</span>
+                <div className="view-toggle">
                   <button
-                    className={`btn btn-sm ${adminViewMode === 'admin' ? 'btn-primary' : 'btn-outline'}`}
+                    className={`btn btn-sm ${adminViewMode === 'admin' ? 'btn-primary' : 'btn-ghost'}`}
                     style={{ border: 'none' }}
                     onClick={() => setAdminViewMode('admin')}
                   >
-                    Admin / Staff Queue
+                    Staff Queue
                   </button>
                   <button
-                    className={`btn btn-sm ${adminViewMode === 'student' ? 'btn-primary' : 'btn-outline'}`}
+                    className={`btn btn-sm ${adminViewMode === 'student' ? 'btn-primary' : 'btn-ghost'}`}
                     style={{ border: 'none' }}
                     onClick={() => setAdminViewMode('student')}
                   >
-                    Student Lodging View
+                    Student View
                   </button>
                 </div>
               </div>

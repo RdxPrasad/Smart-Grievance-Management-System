@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { api } from '../api'
+import { IconAlertCircle, IconCheckCircle, IconInbox, IconArrowRight } from './Icons'
 import GrievanceTimelineModal from './GrievanceTimelineModal'
 
 export default function StudentDashboard({ user }) {
@@ -68,9 +69,9 @@ export default function StudentDashboard({ user }) {
       }
 
       await api.createGrievance(payload)
-      setSuccessMsg('Grievance registered successfully! It has been routed to the department.')
+      setSuccessMsg('Grievance registered and routed to the department.')
       setComplaint('')
-      
+
       // Refresh list
       const freshGrievances = await api.getGrievances()
       setGrievances(freshGrievances)
@@ -106,23 +107,23 @@ export default function StudentDashboard({ user }) {
 
         {error && (
           <div className="alert alert-error">
-            <span>⚠️</span>
+            <IconAlertCircle className="alert-icon" />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
           <div className="alert alert-success">
-            <span>✅</span>
+            <IconCheckCircle className="alert-icon" />
             <span>{successMsg}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmitGrievance}>
           <div className="form-group">
-            <label className="form-label" htmlFor="complaint">Complaint Description</label>
+            <label className="form-label" htmlFor="student-complaint">Complaint Description</label>
             <textarea
-              id="complaint"
+              id="student-complaint"
               className="form-textarea"
               placeholder="Clearly describe the issue, location, and any relevant details..."
               value={complaint}
@@ -134,9 +135,9 @@ export default function StudentDashboard({ user }) {
 
           <div className="form-grid-2">
             <div className="form-group">
-              <label className="form-label" htmlFor="category">Category</label>
+              <label className="form-label" htmlFor="student-category">Category</label>
               <select
-                id="category"
+                id="student-category"
                 className="form-select"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
@@ -150,9 +151,9 @@ export default function StudentDashboard({ user }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="department">Department</label>
+              <label className="form-label" htmlFor="student-department">Department</label>
               <select
-                id="department"
+                id="student-department"
                 className="form-select"
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
@@ -168,24 +169,24 @@ export default function StudentDashboard({ user }) {
 
           <div className="form-grid-2">
             <div className="form-group">
-              <label className="form-label" htmlFor="priority">Initial Urgency / Priority</label>
+              <label className="form-label" htmlFor="student-priority">Priority</label>
               <select
-                id="priority"
+                id="student-priority"
                 className="form-select"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
               >
-                <option value="Low">Low (General inquiry, minor issue)</option>
-                <option value="Medium">Medium (Standard resolution expected)</option>
-                <option value="High">High (Affecting coursework or daily schedule)</option>
+                <option value="Low">Low - General inquiry, minor issue</option>
+                <option value="Medium">Medium - Standard resolution expected</option>
+                <option value="High">High - Affecting coursework or schedule</option>
               </select>
             </div>
 
             <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
                 type="submit"
-                className="btn btn-primary"
-                style={{ width: '100%', height: '42px' }}
+                className="btn btn-primary btn-lg"
+                style={{ width: '100%' }}
                 disabled={submitting}
               >
                 {submitting ? 'Submitting...' : 'Submit Grievance'}
@@ -201,21 +202,24 @@ export default function StudentDashboard({ user }) {
           <div>
             <h2 className="card-title">My Registered Grievances</h2>
             <p className="card-desc">
-              Track real-time progress and view staff resolution updates.
+              Track progress and view staff resolution updates.
             </p>
           </div>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+          <span className="text-sm text-muted">
             Total: <strong>{grievances.length}</strong>
           </span>
         </div>
 
         {loading ? (
-          <p style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-            Loading your grievances...
-          </p>
+          <div className="loading-inline">
+            <div className="spinner"></div>
+            <span>Loading your grievances...</span>
+          </div>
         ) : grievances.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">📂</div>
+            <div className="empty-state-icon">
+              <IconInbox size={48} />
+            </div>
             <h4>No grievances submitted yet</h4>
             <p>Use the form above to register your first grievance.</p>
           </div>
@@ -234,15 +238,13 @@ export default function StudentDashboard({ user }) {
               <tbody>
                 {grievances.map((g) => (
                   <tr key={g.id}>
-                    <td style={{ fontWeight: '600', color: 'var(--text-muted)' }}>
-                      #{g.id}
-                    </td>
-                    <td style={{ maxWidth: '380px' }}>
-                      <div style={{ fontWeight: '500', color: 'var(--text-main)', marginBottom: '3px' }}>
+                    <td className="td-id">#{g.id}</td>
+                    <td className="td-complaint">
+                      <div className="td-complaint-text">
                         {g.complaint}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-subtle)' }}>
-                        Category #{g.category_id} • Dept #{g.department_id}
+                      <div className="td-complaint-meta">
+                        Category #{g.category_id} / Dept #{g.department_id}
                       </div>
                     </td>
                     <td>
@@ -253,13 +255,14 @@ export default function StudentDashboard({ user }) {
                     <td>
                       {getStatusBadge(g.status)}
                     </td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td className="td-actions">
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => setActiveGrievance(g)}
                         title="View status updates timeline"
                       >
-                        Track Progress →
+                        Track Progress
+                        <IconArrowRight size={14} />
                       </button>
                     </td>
                   </tr>
