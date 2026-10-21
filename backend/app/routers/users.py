@@ -4,29 +4,26 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Department
 from app.schemas import UserResponse, UserCreate, UserUpdate
-from app.auth import get_current_user, require_admin
 
 VALID_ROLES = ["student", "staff", "admin"]
 
 router = APIRouter(tags=["Users"])
 
 
-# GET ALL USERS — ADMIN ONLY
+# GET ALL USERS
 @router.get("/users", response_model=list[UserResponse])
 def get_users(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
 ):
     users = db.query(User).all()
     return users
 
 
-# CREATE USER — ADMIN ONLY
+# CREATE USER
 @router.post("/users", response_model=UserResponse)
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
 ):
     if user.role not in VALID_ROLES:
         raise HTTPException(
@@ -57,20 +54,12 @@ def create_user(
     return new_user
 
 
-# GET ONE USER — OWN PROFILE OR ADMIN
+# GET ONE USER
 @router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
-    # Only admin can view other users' profiles
-    if current_user.role != "admin" and current_user.id != user_id:
-        raise HTTPException(
-            status_code=403,
-            detail="You are not authorized to view this user profile ❌"
-        )
-
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
@@ -82,13 +71,12 @@ def get_user(
     return user
 
 
-# UPDATE USER — ADMIN ONLY
+# UPDATE USER
 @router.put("/users/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,
     user_data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
 ):
     user = db.query(User).filter(User.id == user_id).first()
 
@@ -124,19 +112,12 @@ def update_user(
     return user
 
 
-# DELETE USER — ADMIN ONLY
+# DELETE USER
 @router.delete("/users/{user_id}")
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
 ):
-    if user_id == current_user.id:
-        raise HTTPException(
-            status_code=400,
-            detail="Admin cannot delete their own account ❌"
-        )
-
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
@@ -149,4 +130,3 @@ def delete_user(
     db.commit()
 
     return {"message": "User deleted successfully ✅"}
-

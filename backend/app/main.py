@@ -1,16 +1,13 @@
-from fastapi import FastAPI, Depends , HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import User
-from app.schemas import UserResponse , UserCreate , UserUpdate
-from app.routers import users , categories , grievances , updateGrievance
-from app.routers import auth
-from app.routers import departments
+from app.routers import users, categories, departments, grievances, updateGrievance
 
 
-app = FastAPI()
+app = FastAPI(
+    title="SGMS API",
+    description="Smart Grievance Management System Backend",
+)
 
 # Configure CORS (Cross-Origin Resource Sharing)
 # This allows our React frontend running on port 5173 to send requests to this backend.
@@ -33,12 +30,9 @@ app.add_middleware(
 def root():
     return {"message": "SGMS Backend is running! ✅"}
 
+
 app.include_router(users.router)
 app.include_router(categories.router)
+app.include_router(departments.router)
 app.include_router(grievances.router)
 app.include_router(updateGrievance.router)
-app.include_router(auth.router)
-app.include_router(departments.router)
-
-
-

@@ -1,41 +1,40 @@
-from fastapi import APIRouter , Depends , HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Category , User
-from app.schemas import CategoryCreate , CategoryUpdate , CategoryResponse
-from app.auth import require_admin , get_current_user
+from app.models import Category
+from app.schemas import CategoryCreate, CategoryUpdate, CategoryResponse
 
 
 
-router = APIRouter() 
+router = APIRouter()
 
 # GET ONE CATEGORY
-@router.get("/categories/{category_id}",response_model=CategoryResponse)
-def get_category(category_id : int , db : Session = Depends(get_db) , current_user: User = Depends(get_current_user)):
+@router.get("/categories/{category_id}", response_model=CategoryResponse)
+def get_category(category_id: int, db: Session = Depends(get_db)):
     category = db.query(Category).filter(Category.id == category_id).first()
 
-    if not category :
+    if not category:
         raise HTTPException(
-            status_code=404 ,
+            status_code=404,
             detail="Category not found ❌"
         )
 
     return category
 
 # GET ALL CATEGORIES
-@router.get("/categories" , response_model=list[CategoryResponse])
-def get_categories(db : Session = Depends(get_db) , current_user: User = Depends(get_current_user)):
+@router.get("/categories", response_model=list[CategoryResponse])
+def get_categories(db: Session = Depends(get_db)):
     categories = db.query(Category).all()
-    
+
     return categories
 
 # CREATE CATEGORY
-@router.post("/categories" , response_model=CategoryResponse)
-def create_category( category : CategoryCreate , current_user: User = Depends(require_admin) , db : Session = Depends(get_db)):
+@router.post("/categories", response_model=CategoryResponse)
+def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     new_category = Category(
-        name = category.name ,
-        description = category.description
+        name=category.name,
+        description=category.description
     )
 
     db.add(new_category)
@@ -45,13 +44,13 @@ def create_category( category : CategoryCreate , current_user: User = Depends(re
     return new_category
 
 # UPDATE CATEGORY
-@router.put("/categories/{category_id}",response_model=CategoryResponse)
-def update_category(category_id : int , category : CategoryUpdate ,  db : Session = Depends(get_db) , current_user: User = Depends(require_admin) ):
+@router.put("/categories/{category_id}", response_model=CategoryResponse)
+def update_category(category_id: int, category: CategoryUpdate, db: Session = Depends(get_db)):
     update_category = db.query(Category).filter(Category.id == category_id).first()
 
-    if not update_category :
+    if not update_category:
         raise HTTPException(
-            status_code=404 ,
+            status_code=404,
             detail="Category not found ❌"
         )
 
@@ -65,10 +64,10 @@ def update_category(category_id : int , category : CategoryUpdate ,  db : Sessio
 
 # DELETE CATEGORY
 @router.delete("/categories/{category_id}")
-def delete_category(category_id : int , db : Session = Depends(get_db) , current_user: User = Depends(require_admin)):
+def delete_category(category_id: int, db: Session = Depends(get_db)):
     search_category = db.query(Category).filter(category_id == Category.id).first()
 
-    if not search_category :
+    if not search_category:
         raise HTTPException(
             status_code=404,
             detail="Category not found ❌"
@@ -77,11 +76,4 @@ def delete_category(category_id : int , db : Session = Depends(get_db) , current
     db.delete(search_category)
     db.commit()
 
-    return {"message" : "Category deleted successfully ✅"}
-
-
-
-
-
-
-
+    return {"message": "Category deleted successfully ✅"}
