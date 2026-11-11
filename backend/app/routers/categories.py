@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -7,10 +7,14 @@ from app.schemas import CategoryCreate, CategoryUpdate, CategoryResponse
 
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/categories",
+    tags=["Categories"]
+)
+
 
 # GET ONE CATEGORY
-@router.get("/categories/{category_id}", response_model=CategoryResponse)
+@router.get("/{category_id}", response_model=CategoryResponse)
 def get_category(category_id: int, db: Session = Depends(get_db)):
     category = db.query(Category).filter(Category.id == category_id).first()
 
@@ -23,17 +27,24 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
     return category
 
 # GET ALL CATEGORIES
-@router.get("/categories", response_model=list[CategoryResponse])
+@router.get("/", response_model=list[CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
     categories = db.query(Category).all()
 
     return categories
 
 # CREATE CATEGORY
-@router.post("/categories", response_model=CategoryResponse)
+@router.post("/", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+    existing = db.query(Category).filter(Category.name.ilike(category.name)).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Category '{category.name}' already exists ❌"
+        )
+
     new_category = Category(
-        name=category.name,
+        name=category.name.strip(),
         description=category.description
     )
 
@@ -44,36 +55,42 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     return new_category
 
 # UPDATE CATEGORY
-@router.put("/categories/{category_id}", response_model=CategoryResponse)
+@router.put("/{category_id}", response_model=CategoryResponse)
 def update_category(category_id: int, category: CategoryUpdate, db: Session = Depends(get_db)):
-    update_category = db.query(Category).filter(Category.id == category_id).first()
+    db_category = db.query(Category).filter(Category.id == category_id).first()
 
-    if not update_category:
+    if not db_category:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found ❌"
         )
 
-    update_category.name = category.name
-    update_category.description = category.description
+    db_category.name = category.name.strip()
+    db_category.description = category.description
 
     db.commit()
-    db.refresh(update_category)
+    db.refresh(db_category)
 
-    return update_category
+    return db_category
 
 # DELETE CATEGORY
-@router.delete("/categories/{category_id}")
+@router.delete("/{category_id}")
 def delete_category(category_id: int, db: Session = Depends(get_db)):
-    search_category = db.query(Category).filter(category_id == Category.id).first()
+    db_category = db.query(Category).filter(Category.id == category_id).first()
 
-    if not search_category:
+    if not db_category:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found ❌"
         )
 
-    db.delete(search_category)
+    if db_category.grievances:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete category with associated grievances ❌"
+        )
+
+    db.delete(db_category)
     db.commit()
 
     return {"message": "Category deleted successfully ✅"}

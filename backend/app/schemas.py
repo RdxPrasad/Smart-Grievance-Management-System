@@ -1,12 +1,14 @@
 
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, EmailStr
+from uuid import UUID
 from typing import Optional
 
 # USER TABLE
 class UserCreate(BaseModel):
     name : str
-    email : str
+    email : EmailStr
+    password : str
     role : str
     department_id: Optional[int] = None
 
@@ -21,7 +23,7 @@ class UserResponse(BaseModel):
     name : str 
     email : str
     role : str
-    department_id: Optional[int]
+    department_id: Optional[int] = None
     created_at : datetime
     updated_at : datetime
 
@@ -45,7 +47,7 @@ class DepartmentUpdate(BaseModel):
 class DepartmentResponse(BaseModel):
     id: int
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -67,7 +69,7 @@ class CategoryUpdate(BaseModel):
 class CategoryResponse(BaseModel):
     id : int 
     name : str 
-    description : Optional[str] 
+    description : Optional[str] = None
     created_at : datetime
     updated_at : datetime
 
@@ -84,14 +86,14 @@ class GrievanceCreate(BaseModel):
     complaint : str 
     priority : str
     status : str = "Open"
-    category_id : int
+    category_id : Optional[int] = None
     department_id: Optional[int] = None
 
 class GrievanceUpdate(BaseModel):
     complaint : str 
     priority : str 
     status : str 
-    category_id : int
+    category_id : Optional[int] = None
     department_id: Optional[int] = None
 
 class GrievanceResponse(BaseModel):
@@ -100,10 +102,10 @@ class GrievanceResponse(BaseModel):
     complaint : str
     priority : str
     status : str
-    category_id : int
+    category_id : Optional[int] = None
     created_at : datetime
     updated_at : datetime
-    department_id: Optional[int]
+    department_id: Optional[int] = None
 
     class Config :
         from_attributes = True
@@ -127,7 +129,6 @@ class GrievanceUpdateResponse(BaseModel):
     note : Optional[str] = None
     created_at : datetime
 
-    class Config :
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 

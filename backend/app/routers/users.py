@@ -1,34 +1,54 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, Department
 from app.schemas import UserResponse, UserCreate, UserUpdate
+from app.auth import hash_password
 
 VALID_ROLES = ["student", "staff", "admin"]
 
-router = APIRouter(tags=["Users"])
+router = APIRouter(
+    prefix="/users",
+    tags=["Users"]
+)
 
 
-# GET ALL USERS
-@router.get("/users", response_model=list[UserResponse])
+# GET ALL USERS (with optional role/department filters)
+@router.get("/", response_model=list[UserResponse])
 def get_users(
+    role: Optional[str] = None,
+    department_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
-    users = db.query(User).all()
-    return users
+    query = db.query(User)
+    if role:
+        query = query.filter(User.role == role.lower().strip())
+    if department_id:
+        query = query.filter(User.department_id == department_id)
+    return query.order_by(User.id).all()
 
 
 # CREATE USER
-@router.post("/users", response_model=UserResponse)
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
 ):
-    if user.role not in VALID_ROLES:
+    normalized_role = user.role.lower().strip()
+    if normalized_role not in VALID_ROLES:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid role '{user.role}'. Must be one of: {', '.join(VALID_ROLES)}"
+        )
+
+    # Check for duplicate email
+    existing_user = db.query(User).filter(User.email.ilike(user.email.strip())).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"User with email '{user.email}' already exists ❌"
         )
 
     # Validate department if provided
@@ -36,15 +56,16 @@ def create_user(
         dept = db.query(Department).filter(Department.id == user.department_id).first()
         if not dept:
             raise HTTPException(
-                status_code=404,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Department with id {user.department_id} not found ❌"
             )
 
     new_user = User(
-        name=user.name,
-        email=user.email,
-        role=user.role,
-        department_id=user.department_id
+        name=user.name.strip(),
+        email=user.email.strip().lower(),
+        role=normalized_role,
+        department_id=user.department_id,
+        hashed_password=hash_password(user.password)
     )
 
     db.add(new_user)
@@ -55,41 +76,50 @@ def create_user(
 
 
 # GET ONE USER
-@router.get("/users/{user_id}", response_model=UserResponse)
+@router.get("/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found ❌"
         )
-
     return user
 
 
 # UPDATE USER
-@router.put("/users/{user_id}", response_model=UserResponse)
+@router.put("/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,
     user_data: UserUpdate,
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found ❌"
         )
 
-    if user_data.role not in VALID_ROLES:
+    normalized_role = user_data.role.lower().strip()
+    if normalized_role not in VALID_ROLES:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid role '{user_data.role}'. Must be one of: {', '.join(VALID_ROLES)}"
+        )
+
+    # Check for email conflict with other users
+    email_conflict = db.query(User).filter(
+        User.email.ilike(user_data.email.strip()),
+        User.id != user_id
+    ).first()
+    if email_conflict:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Another user with email '{user_data.email}' already exists ❌"
         )
 
     # Validate department if provided
@@ -97,13 +127,13 @@ def update_user(
         dept = db.query(Department).filter(Department.id == user_data.department_id).first()
         if not dept:
             raise HTTPException(
-                status_code=404,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Department with id {user_data.department_id} not found ❌"
             )
 
-    user.name = user_data.name
-    user.email = user_data.email
-    user.role = user_data.role
+    user.name = user_data.name.strip()
+    user.email = user_data.email.strip().lower()
+    user.role = normalized_role
     user.department_id = user_data.department_id
 
     db.commit()
@@ -113,17 +143,28 @@ def update_user(
 
 
 # DELETE USER
-@router.delete("/users/{user_id}")
+@router.delete("/{user_id}")
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found ❌"
+        )
+
+    # Check for associated records before deleting
+    if user.grievances:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user with submitted grievances ❌"
+        )
+    if user.updates:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user with recorded grievance updates ❌"
         )
 
     db.delete(user)

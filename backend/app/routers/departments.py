@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -9,7 +9,6 @@ from app.schemas import (
     DepartmentResponse
 )
 
-
 router = APIRouter(
     prefix="/departments",
     tags=["Departments"]
@@ -17,23 +16,23 @@ router = APIRouter(
 
 
 # CREATE DEPARTMENT
-@router.post("/", response_model=DepartmentResponse)
+@router.post("/", response_model=DepartmentResponse, status_code=status.HTTP_201_CREATED)
 def create_department(
     department: DepartmentCreate,
     db: Session = Depends(get_db)
 ):
-    existing_department = db.query(Department).filter(
-        Department.name == department.name
+    existing = db.query(Department).filter(
+        Department.name.ilike(department.name)
     ).first()
 
-    if existing_department:
+    if existing:
         raise HTTPException(
-            status_code=400,
-            detail="Department already exists ❌"
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Department '{department.name}' already exists ❌"
         )
 
     new_department = Department(
-        name=department.name,
+        name=department.name.strip(),
         description=department.description
     )
 
@@ -49,7 +48,7 @@ def create_department(
 def get_departments(
     db: Session = Depends(get_db)
 ):
-    return db.query(Department).all()
+    return db.query(Department).order_by(Department.name).all()
 
 
 # GET ONE DEPARTMENT
@@ -64,7 +63,7 @@ def get_department(
 
     if not department:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Department not found ❌"
         )
 
@@ -84,11 +83,23 @@ def update_department(
 
     if not existing_department:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Department not found ❌"
         )
 
-    existing_department.name = department.name
+    # Check for name conflict with other departments
+    name_conflict = db.query(Department).filter(
+        Department.name.ilike(department.name),
+        Department.id != department_id
+    ).first()
+
+    if name_conflict:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Department with name '{department.name}' already exists ❌"
+        )
+
+    existing_department.name = department.name.strip()
     existing_department.description = department.description
 
     db.commit()
@@ -109,13 +120,24 @@ def delete_department(
 
     if not department:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Department not found ❌"
+        )
+
+    # Foreign key protection
+    if department.users:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete department with assigned users ❌"
+        )
+
+    if department.grievances:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete department with active grievances ❌"
         )
 
     db.delete(department)
     db.commit()
 
-    return {
-        "message": "Department deleted successfully ✅"
-    }
+    return {"message": "Department deleted successfully ✅"}

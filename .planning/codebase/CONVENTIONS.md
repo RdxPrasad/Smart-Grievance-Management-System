@@ -76,3 +76,4 @@
 
 *Convention analysis: 2026-11-07*
 *Update when patterns change*
+
