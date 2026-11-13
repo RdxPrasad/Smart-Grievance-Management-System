@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+from pathlib import Path 
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
@@ -24,7 +25,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 # ----------------------------------------------------------------------
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
+
 JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
 
 if not JWT_SECRET_KEY :

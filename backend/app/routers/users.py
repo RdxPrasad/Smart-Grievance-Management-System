@@ -1,3 +1,4 @@
+from sqlalchemy.sql.functions import current_user
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -6,6 +7,8 @@ from app.database import get_db
 from app.models import User, Department
 from app.schemas import UserResponse, UserCreate, UserUpdate
 from app.auth import hash_password
+from app.dependencies import get_current_user
+from app.dependencies import require_role
 
 VALID_ROLES = ["student", "staff", "admin"]
 
@@ -13,6 +16,12 @@ router = APIRouter(
     prefix="/users",
     tags=["Users"]
 )
+
+@router.get("/me", response_model=UserResponse)
+def get_my_profile(
+    current_user : User = Depends(get_current_user)
+):
+    return current_user
 
 
 # GET ALL USERS (with optional role/department filters)
@@ -31,7 +40,9 @@ def get_users(
 
 
 # CREATE USER
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED ,
+dependencies=[Depends(require_role("admin"))]
+)
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
