@@ -8,6 +8,7 @@ from app.schemas import (
     DepartmentUpdate,
     DepartmentResponse
 )
+from app.dependencies import get_current_user, require_role
 
 router = APIRouter(
     prefix="/departments",
@@ -15,8 +16,13 @@ router = APIRouter(
 )
 
 
-# CREATE DEPARTMENT
-@router.post("/", response_model=DepartmentResponse, status_code=status.HTTP_201_CREATED)
+# CREATE DEPARTMENT (Admin only)
+@router.post(
+    "/",
+    response_model=DepartmentResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role("admin"))]
+)
 def create_department(
     department: DepartmentCreate,
     db: Session = Depends(get_db)
@@ -43,16 +49,24 @@ def create_department(
     return new_department
 
 
-# GET ALL DEPARTMENTS
-@router.get("/", response_model=list[DepartmentResponse])
+# GET ALL DEPARTMENTS (Any authenticated user)
+@router.get(
+    "/",
+    response_model=list[DepartmentResponse],
+    dependencies=[Depends(get_current_user)]
+)
 def get_departments(
     db: Session = Depends(get_db)
 ):
     return db.query(Department).order_by(Department.name).all()
 
 
-# GET ONE DEPARTMENT
-@router.get("/{department_id}", response_model=DepartmentResponse)
+# GET ONE DEPARTMENT (Any authenticated user)
+@router.get(
+    "/{department_id}",
+    response_model=DepartmentResponse,
+    dependencies=[Depends(get_current_user)]
+)
 def get_department(
     department_id: int,
     db: Session = Depends(get_db)
@@ -70,8 +84,12 @@ def get_department(
     return department
 
 
-# UPDATE DEPARTMENT
-@router.put("/{department_id}", response_model=DepartmentResponse)
+# UPDATE DEPARTMENT (Admin only)
+@router.put(
+    "/{department_id}",
+    response_model=DepartmentResponse,
+    dependencies=[Depends(require_role("admin"))]
+)
 def update_department(
     department_id: int,
     department: DepartmentUpdate,
@@ -108,8 +126,11 @@ def update_department(
     return existing_department
 
 
-# DELETE DEPARTMENT
-@router.delete("/{department_id}")
+# DELETE DEPARTMENT (Admin only)
+@router.delete(
+    "/{department_id}",
+    dependencies=[Depends(require_role("admin"))]
+)
 def delete_department(
     department_id: int,
     db: Session = Depends(get_db)

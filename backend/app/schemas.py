@@ -82,10 +82,8 @@ class CategoryResponse(BaseModel):
 
 # GRIEVANCES TABLE
 class GrievanceCreate(BaseModel):
-    submitted_by : int  # Temporary: supply user ID explicitly until auth is implemented
     complaint : str 
     priority : str
-    status : str = "Open"
     category_id : Optional[int] = None
     department_id: Optional[int] = None
 
@@ -116,7 +114,6 @@ class GrievanceResponse(BaseModel):
 # GRIEVANCE_UPDATE TABLE
 class GrievanceUpdateCreate(BaseModel):
     grievance_id : int
-    updated_by : int  # Temporary: supply user ID explicitly until auth is implemented
     status : str
     note : Optional[str] = None
 

@@ -1,4 +1,3 @@
-from sqlalchemy.sql.functions import current_user
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,8 +6,7 @@ from app.database import get_db
 from app.models import User, Department
 from app.schemas import UserResponse, UserCreate, UserUpdate
 from app.auth import hash_password
-from app.dependencies import get_current_user
-from app.dependencies import require_role
+from app.dependencies import get_current_user, require_role
 
 VALID_ROLES = ["student", "staff", "admin"]
 
@@ -17,15 +15,21 @@ router = APIRouter(
     tags=["Users"]
 )
 
+
+# GET CURRENT AUTHENTICATED USER PROFILE
 @router.get("/me", response_model=UserResponse)
 def get_my_profile(
-    current_user : User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     return current_user
 
 
-# GET ALL USERS (with optional role/department filters)
-@router.get("/", response_model=list[UserResponse])
+# GET ALL USERS (Admin only)
+@router.get(
+    "/",
+    response_model=list[UserResponse],
+    dependencies=[Depends(require_role("admin"))]
+)
 def get_users(
     role: Optional[str] = None,
     department_id: Optional[int] = None,
@@ -39,9 +43,12 @@ def get_users(
     return query.order_by(User.id).all()
 
 
-# CREATE USER
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED ,
-dependencies=[Depends(require_role("admin"))]
+# CREATE USER (Admin only - for creating staff/admin accounts)
+@router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role("admin"))]
 )
 def create_user(
     user: UserCreate,
@@ -86,12 +93,20 @@ def create_user(
     return new_user
 
 
-# GET ONE USER
+# GET ONE USER (Admin or the user themselves)
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # Only admin can view other users' profiles; users can view their own
+    if current_user.role != "admin" and current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view this profile ❌"
+        )
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
@@ -101,8 +116,12 @@ def get_user(
     return user
 
 
-# UPDATE USER
-@router.put("/{user_id}", response_model=UserResponse)
+# UPDATE USER (Admin only)
+@router.put(
+    "/{user_id}",
+    response_model=UserResponse,
+    dependencies=[Depends(require_role("admin"))]
+)
 def update_user(
     user_id: int,
     user_data: UserUpdate,
@@ -153,8 +172,11 @@ def update_user(
     return user
 
 
-# DELETE USER
-@router.delete("/{user_id}")
+# DELETE USER (Admin only)
+@router.delete(
+    "/{user_id}",
+    dependencies=[Depends(require_role("admin"))]
+)
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
