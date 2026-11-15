@@ -1,8 +1,9 @@
 
+from asyncio import PriorityQueue
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr
 from uuid import UUID
-from typing import Optional
+from typing import Optional , Literal
 
 # USER TABLE
 class UserCreate(BaseModel):
@@ -128,4 +129,17 @@ class GrievanceUpdateResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class GrievanceClassificationRequest(BaseModel):
+    complaint_text : str 
+
+class GrievanceClassificationResponse(BaseModel):
+    department_id : Optional[int] = None
+    department_name : Optional[str] = None
+    category_id : Optional[int] = None
+    category_name : Optional[str] = None
+    priority : Literal["Low","Medium","High","Urgent"]
+    confidence_score : float
+    reasoning : str 
+    suggested_title : str 
 
